@@ -53,7 +53,7 @@ class GPGErrorConan(ConanFile):
                 self.output.info("Activated option! %s" % option_name)
                 config_options_string += " --%s" % option_name.replace("_", "-")
 
-        configure_command = "cd %s && %s ./configure --enable-static --enable-shared %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), config_options_string)
+        configure_command = "cd %s && %s ./configure --prefix=%s --enable-static --enable-shared %s" % (self.ZIP_FOLDER_NAME, self.generic_env_configure_vars(), self.package_folder, config_options_string)
         self.output.warn(configure_command)
         self.run(configure_command)
         self.run("cd %s && make" % self.ZIP_FOLDER_NAME)
