@@ -66,6 +66,7 @@ if __name__ == "__main__":
         upload=upload,
         remotes=upload,  # while redundant, this moves bincrafters remote to position 0
         upload_only_when_stable=True,
+        archs=['x86_64']
         stable_branch_pattern="stable/*")
 
     builder.add_common_builds(shared_option_name=name + ":shared")
