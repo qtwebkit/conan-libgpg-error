@@ -60,6 +60,7 @@ if __name__ == "__main__":
     upload = "https://api.bintray.com/conan/{0}/opensource".format(username)
 
     builder = ConanMultiPackager(
+        settings={"arch": "x86_64"} # don't cross compile
         username=username,
         channel=channel,
         reference=reference,
