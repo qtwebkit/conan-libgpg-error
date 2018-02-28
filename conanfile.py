@@ -48,12 +48,9 @@ class GPGErrorConan(ConanFile):
 
             # This is a terrible hack to make cross-compiling on Travis work
             if (self.settings.arch=='x86' and self.settings.os=='Linux'):
-                config_args.append("--build=$(build-aux/config.guess)")
-                config_args.append("--host=i686-pc-linux-gnu")
-
-            self.output.info(config_args)
-
-            env_build.configure(args=config_args)
+                env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
+            else:
+                env_build.configure(args=config_args)
             env_build.make()
 
     def package(self):
