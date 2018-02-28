@@ -46,6 +46,10 @@ class GPGErrorConan(ConanFile):
                         self.output.info("Activated option! %s" % option_name)
                         config_args.append("--%s" % option_name)
 
+            # This is a terrible hack to make cross-compiling on Travis work
+            if (self.settings.arch=='x86' and self.settings.os=='Linux'):
+                config_args.append("--build=$(build-aux/config.guess)")
+                config_args.append("--host=i686-pc-linux-gnu")
 
             env_build.configure(args=config_args)
             env_build.make()
