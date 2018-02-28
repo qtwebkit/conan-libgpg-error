@@ -51,6 +51,8 @@ class GPGErrorConan(ConanFile):
                 config_args.append("--build=$(build-aux/config.guess)")
                 config_args.append("--host=i686-pc-linux-gnu")
 
+            self.output.info(config_args)
+
             env_build.configure(args=config_args)
             env_build.make()
 
