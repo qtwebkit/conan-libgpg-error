@@ -52,14 +52,12 @@ class GPGErrorConan(ConanFile):
 
     def package(self):
         self.copy("*.h", "include", "sources/src", keep_path=True)
-        if self.options.shared:
-            self.copy(pattern="*.so*", dst="lib", src="sources", keep_path=False)
-            self.copy(pattern="*.dll*", dst="bin", src="sources", keep_path=False)
-        else:
-            self.copy(pattern="*.a", dst="lib", src="sources", keep_path=False)
-
+        # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
         self.copy(pattern="*.lib", dst="lib", src="sources", keep_path=False)
-        #binaries
+        self.copy(pattern="*.a", dst="lib", src="sources", keep_path=False)
+        self.copy(pattern="*.so*", dst="lib", src="sources", keep_path=False)
+        self.copy(pattern="*.dylib", dst="lib", src="sources", keep_path=False)
+        # binaries
         self.copy("gen-posix-lock-obj", dst="bin", src="sources/src", keep_path=False)
         self.copy("gpg-error", dst="bin", src="sources/src", keep_path=False)
         self.copy("gpg-error-config", dst="bin", src="sources/src", keep_path=False)
