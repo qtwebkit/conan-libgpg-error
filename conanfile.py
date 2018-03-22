@@ -16,6 +16,10 @@ class GPGErrorConan(ConanFile):
     options = {"shared": [True, False]}
     default_options = "shared=False"
 
+    def configure(self):
+        # Because this is pure C
+        del self.settings.compiler.libcxx
+
     def source(self):
         source_url = "https://www.gnupg.org/ftp/gcrypt/libgpg-error"
         tools.get("{0}/libgpg-error-{1}.tar.bz2".format(source_url, self.version))
