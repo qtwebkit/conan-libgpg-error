@@ -3,75 +3,101 @@
 
 from conans import ConanFile, AutoToolsBuildEnvironment, tools
 import os
+import shutil
 
 
 class GPGErrorConan(ConanFile):
     name = "libgpg-error"
     version = "1.24"
+    homepage = "https://gnupg.org/software/libgpg-error/index.html"
     url = "http://github.com/DEGoodmanWilson/conan-libgpg-error"
-    description = "Libgpg-error is a small library that originally defined common error values for all GnuPG components."
-    license = "https://www.gnupg.org/documentation/manuals/gnupg/Copying.html#Copying"
+    author = "Bincrafters <bincrafters@gmail.com>"
+    topics = ("conan", "gpg", "gnupg")
+    description = "Libgpg-error is a small library that originally defined common error values for all GnuPG " \
+                  "components."
+    license = "GPL-2.0-or-later"
     exports_sources = ["CMakeLists.txt"]
     settings = "os", "arch", "compiler", "build_type"
-    options = {"shared": [True, False]}
-    default_options = "shared=False"
+    options = {"shared": [True, False], "fPIC": [True, False]}
+    default_options = {"shared": False, "fPIC": True}
+    _source_subfolder = "sources"
+
+    @property
+    def _is_msvc(self):
+        return self.settings.compiler == "Visual Studio"
+
+    def build_requirements(self):
+        if tools.os_info.is_windows:
+            if "CONAN_BASH_PATH" not in os.environ:
+                self.build_requires("cygwin_installer/2.9.0@bincrafters/stable")
+        if self._is_msvc:
+            self.build_requires("automake_build_aux/1.16.1@bincrafters/stable")
 
     def configure(self):
-        # Because this is pure C
         del self.settings.compiler.libcxx
+
+    def config_options(self):
+        if self.settings.os == "Windows":
+            del self.options.fPIC
 
     def source(self):
         source_url = "https://www.gnupg.org/ftp/gcrypt/libgpg-error"
-        tools.get("{0}/libgpg-error-{1}.tar.bz2".format(source_url, self.version))
+        tools.get("{0}/libgpg-error-{1}.tar.bz2".format(source_url, self.version),
+                  sha256="9268e1cc487de5e6e4460fca612a06e4f383072ac43ae90603e5e46783d3e540")
         extracted_dir = self.name + "-" + self.version
-        os.rename(extracted_dir, "sources")
+        os.rename(extracted_dir, self._source_subfolder)
 
     def build(self):
-        if self.settings.compiler == 'Visual Studio':
-            # self.build_vs()
-            self.output.fatal("No windows support yet. Sorry. Help a fellow out and contribute back?")
+        # the previous step might hang when converting from ISO-8859-2 to UTF-8 late in the build process
+        os.unlink(os.path.join(self._source_subfolder, "po", "ro.po"))
+        build = None
+        host = None
+        rc = None
+        args = ["--disable-dependency-tracking",
+                "--disable-nls",
+                "--disable-languages",
+                "--disable-doc",
+                "--disable-tests"]
+        if self.settings.os != "Windows" and self.options.pic:
+            args.append("--with-pic")
+        if self.options.shared:
+            args.extend(["--disable-static", "--enable-shared"])
+        else:
+            args.extend(["--disable-shared", "--enable-static"])
 
-        with tools.chdir("sources"):
-            env_build = AutoToolsBuildEnvironment(self)
-            env_build.fpic = True
+        if self._is_msvc:
+            # INSTALL.windows: Native binaries, built using the MS Visual C/C++ tool chain.
+            for filename in ["compile", "ar-lib"]:
+                shutil.copy(os.path.join(self.deps_cpp_info["automake_build_aux"].rootpath, filename),
+                            os.path.join(self._source_subfolder, "build-aux", filename))
+            build = False
+            if self.settings.arch == "x86":
+                host = "i686-w64-mingw32"
+                rc = "windres --target=pe-i386"
+            elif self.settings.arch == "x86_64":
+                host = "x86_64-w64-mingw32"
+                rc = "windres --target=pe-x86-64"
+            args.extend(["CC=$PWD/build-aux/compile cl -nologo",
+                         "LD=link",
+                         "NM=dumpbin -symbols",
+                         "STRIP=:",
+                         "AR=$PWD/build-aux/ar-lib lib",
+                         "RANLIB=:"])
+            if rc:
+                args.extend(['RC=%s' % rc, 'WINDRES=%s' % rc])
 
-            config_args = []
-            for option_name in self.options.values.fields:
-                if(option_name == "shared"):
-                    if(getattr(self.options, "shared")):
-                        config_args.append("--enable-shared")
-                        config_args.append("--disable-static")
-                    else:
-                        config_args.append("--enable-static")
-                        config_args.append("--disable-shared")
-                else:
-                    activated = getattr(self.options, option_name)
-                    if activated:
-                        self.output.info("Activated option! %s" % option_name)
-                        config_args.append("--%s" % option_name)
-
-            # This is a terrible hack to make cross-compiling on Travis work
-            if (self.settings.arch=='x86' and self.settings.os=='Linux'):
-                env_build.configure(args=config_args, host="i686-linux-gnu") #because Conan insists on setting this to i686-linux-gnueabi, which smashes gpg-error hard
-            else:
-                env_build.configure(args=config_args)
-            env_build.make()
+        with tools.chdir(self._source_subfolder):
+            with tools.vcvars(self.settings) if self._is_msvc else tools.no_op():
+                env_build = AutoToolsBuildEnvironment(self, win_bash=tools.os_info.is_windows)
+                env_build.configure(args=args, build=build, host=host)
+                env_build.make()
+                env_build.install()
 
     def package(self):
-        self.copy("*.h", "include", "sources/src", keep_path=True)
-        # self.copy(pattern="*.dll", dst="bin", src="bin", keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.a", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", src="sources", keep_path=False)
-        self.copy(pattern="*.dylib", dst="lib", src="sources", keep_path=False)
-        # binaries
-        self.copy("gen-posix-lock-obj", dst="bin", src="sources/src", keep_path=False)
-        self.copy("gpg-error", dst="bin", src="sources/src", keep_path=False)
-        self.copy("gpg-error-config", dst="bin", src="sources/src", keep_path=False)
-        self.copy("mkerrcodes", dst="bin", src="sources/src", keep_path=False)
-        self.copy("mkheader", dst="bin", src="sources/src", keep_path=False)
-        
+        self.copy(pattern="COPYING", dst="licenses", src=self._source_subfolder)
+        la = os.path.join(self.package_folder, "lib", "libgpg-error.la")
+        if os.path.isfile(la):
+            os.unlink(la)
+
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
-
-
+        self.cpp_info.libs = ["gpg-error"]
