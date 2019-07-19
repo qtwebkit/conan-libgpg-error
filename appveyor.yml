@@ -7,7 +7,7 @@ environment:
     CONAN_LOGIN_USERNAME: "annulen"
     CONAN_CHANNEL: "stable"
     CONAN_UPLOAD: "https://api.bintray.com/conan/qtproject/conan"
-    CONAN_REMOTES: "https://api.bintray.com/conan/qtproject/conan"
+    CONAN_REMOTES: "https://api.bintray.com/conan/qtproject/conan, https://api.bintray.com/conan/bincrafters/public-conan"
     CONAN_OPTIONS: "*:shared=True"
 
     matrix:
