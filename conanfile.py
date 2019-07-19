@@ -8,7 +8,7 @@ import shutil
 
 class GPGErrorConan(ConanFile):
     name = "libgpg-error"
-    version = "1.24"
+    version = "1.36"
     homepage = "https://gnupg.org/software/libgpg-error/index.html"
     url = "http://github.com/DEGoodmanWilson/conan-libgpg-error"
     author = "Bincrafters <bincrafters@gmail.com>"
@@ -43,7 +43,7 @@ class GPGErrorConan(ConanFile):
     def source(self):
         source_url = "https://www.gnupg.org/ftp/gcrypt/libgpg-error"
         tools.get("{0}/libgpg-error-{1}.tar.bz2".format(source_url, self.version),
-                  sha256="9268e1cc487de5e6e4460fca612a06e4f383072ac43ae90603e5e46783d3e540")
+                  sha256="babd98437208c163175c29453f8681094bcaf92968a15cafb1a276076b33c97c")
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
